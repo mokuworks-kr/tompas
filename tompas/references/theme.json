@@ -1,0 +1,36 @@
+{
+  "about": "기본 테마. 흑백 초안이자 흑백 계획이다. 프로젝트는 data/theme.json으로 덮어쓴다. 값은 rules.json의 범위 안에서 골랐다. 문자마다 다른 값은 {한글, 라틴}으로 적는다.",
+  "fonts": {
+    "본문": {"family": "Pretendard", "capHeight": 0.73},
+    "제목": {"family": "Pretendard", "capHeight": 0.73}
+  },
+  "body": {"size": 9, "leading": {"한글": 15, "라틴": 13}},
+  "scale": 1.25,
+  "margin": {"inner": 16, "outer": 16, "top": 18, "bottom": 20},
+  "grid": {"cols": 12, "rows": 8, "gutter": 1.25},
+  "styles": {
+    "제목": {"step": 6, "weight": "SemiBold", "font": "제목"},
+    "부제": {"step": 3, "weight": "Regular", "font": "제목"},
+    "소제목": {"step": 1, "weight": "SemiBold", "font": "제목", "after": 0, "before": 1},
+    "본문": {"step": 0, "weight": "Regular"},
+    "라벨": {"step": 0, "weight": "Bold", "after": 0, "keep": true},
+    "핵심": {"step": 0, "weight": "Regular"},
+    "선언": {"step": 3, "weight": "Regular", "font": "제목"},
+    "서명": {"step": 0, "weight": "Medium", "after": 0},
+    "표": {"step": -1, "weight": "Regular", "after": 0, "leading": 1.5},
+    "표 머리": {"step": -1, "weight": "SemiBold", "after": 0, "leading": 1.5},
+    "메모": {"step": -1, "weight": "Regular", "after": 0},
+    "쪽번호": {"step": -1, "weight": "Regular", "after": 0}
+  },
+  "titleLeading": 1.1,
+  "hangul": {"composer": "$ID/HL Composer"},
+  "fit": {"tracking": [-10, -20]},
+  "icon": {"step": 3},
+  "hyphenate": {"한글": false, "라틴": true},
+  "table": {"rule": 0.25, "strong": 0.75},
+  "colors": {"회색": [0, 0, 0, 60], "강조회색": [0, 0, 0, 70]},
+  "tones": {
+    "light": {"바탕": "Paper", "글자": "Black", "보조": "회색", "강조": "강조회색"},
+    "dark": {"바탕": "Black", "글자": "Paper", "보조": "회색", "강조": "Paper"}
+  }
+}

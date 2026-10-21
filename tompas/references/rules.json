@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "about": "TOMPAS 규칙. 층은 위에서 아래로 계산하고, 규칙은 자기 층과 위층의 변수만 쓴다. 규칙 하나는 관계 하나다.",
+
+  "fields": {
+    "kind": {
+      "공식": "값을 정한다. 엔진과 테마가 범위 안에서 고른다.",
+      "체크": "통과와 실패를 가른다.",
+      "점수": "범위를 벗어난 만큼 감점한다.",
+      "가이드": "LLM이 판단한다. 관계가 없다."
+    },
+    "rel": {
+      "range": "a가 범위 안에 든다.",
+      "ratio": "a ÷ b가 범위 안에 든다.",
+      "multiple": "a가 b의 정수배다. 값은 배수의 범위.",
+      "order": "앞에 적은 값일수록 작다.",
+      "snap": "a의 위치가 b의 선 위에 있다.",
+      "scale": "a의 값들이 b를 비율로 하는 등비수열 위에 있다.",
+      "run": "a에서 같은 값이 이어지는 길이. 값은 최대 길이."
+    },
+    "value": "범위 {min, max}. 문자마다 다르면 {한글, 일본어, 라틴}으로 나눈다.",
+    "src": {
+      "가설": "책이나 결정에서 온 값. 아카이브로 검증한다.",
+      "측정": "아카이브에서 잰 값.",
+      "정의": "규칙의 뜻 자체라 재지 않는 값."
+    },
+    "scope": {
+      "보편": "늘 지킨다.",
+      "테마별": "테마에 따라 뒤집힐 수 있다."
+    },
+    "tag": {
+      "취향": "시스템의 성격을 정한다.",
+      "임시": "모델의 약점을 메운다. 지울 대상이다."
+    },
+    "by": {
+      "문서": "프로젝트가 정한다.",
+      "테마": "테마가 정한다.",
+      "와이어프레임": "LLM이 와이어프레임으로 정한다.",
+      "조판": "InDesign 결과에서 잰다.",
+      "계산": "엔진이 위의 변수로 계산한다."
+    },
+    "at": {
+      "문서": "문서에 하나.",
+      "스프레드": "스프레드마다.",
+      "쪽": "쪽마다.",
+      "문단": "문단마다.",
+      "요소": "글 덩어리·사진·도형마다."
+    }
+  },
+
+  "defaults": {"var": {"at": "문서"}, "rule": {"value": null, "scope": "보편", "tag": "취향"}},
+
+  "layers": [
+    {
+      "id": "P", "name": "판",
+      "vars": {
+        "page.w":        {"name": "판형 폭", "unit": "mm", "by": "문서"},
+        "page.h":        {"name": "판형 높이", "unit": "mm", "by": "문서"},
+        "margin.inner":  {"name": "안쪽 여백. 제본에 먹히는 폭을 뺀, 눈에 보이는 값", "unit": "mm", "by": "테마"},
+        "margin.top":    {"name": "위 여백. 쪽번호와 머리글은 이 안에 둔다", "unit": "mm", "by": "테마"},
+        "margin.outer":  {"name": "바깥 여백. 쪽번호와 머리글은 이 안에 둔다", "unit": "mm", "by": "테마"},
+        "margin.bottom": {"name": "아래 여백. 쪽번호와 머리글은 이 안에 둔다", "unit": "mm", "by": "테마"},
+        "page.ratio":    {"name": "판형 비율, 폭 ÷ 높이", "by": "계산"},
+        "text.ratio":    {"name": "판면 비율, 폭 ÷ 높이", "by": "계산"},
+        "text.share":    {"name": "쪽 면적 중 판면의 비율", "by": "계산"},
+        "pages":         {"name": "쪽수", "unit": "쪽", "by": "문서"},
+        "margin.bind":   {"name": "제본에 먹히는 폭", "unit": "mm", "by": "문서"},
+        "margin.ends":   {"name": "위·아래 여백 중 넓은 값", "unit": "mm", "by": "계산"},
+        "margin.sides":  {"name": "안쪽·바깥 여백 중 넓은 값", "unit": "mm", "by": "계산"}
+      },
+      "rules": [
+        {"id": "P1", "rule": "판면은 판형과 같은 비율이다.", "kind": "점수", "rel": "ratio", "args": ["text.ratio", "page.ratio"], "value": {"min": 0.9, "max": 1.1}, "src": "측정", "scope": "테마별", "from": "반 더 그라프"},
+        {"id": "P2", "rule": "위나 아래 여백이 가장 넓다. 좌우는 그보다 좁다.", "kind": "점수", "rel": "ratio", "args": ["margin.ends", "margin.sides"], "value": {"min": 1}, "src": "측정", "scope": "테마별", "from": "반 더 그라프, 아카이브"},
+        {"id": "P3", "rule": "판면은 쪽 면적의 일정 비율을 차지한다.", "kind": "공식", "rel": "range", "args": ["text.share"], "value": {"min": 0.6, "max": 0.8}, "src": "측정", "scope": "테마별", "from": "고전 판면 비례"},
+        {"id": "P4", "rule": "제본에 먹히는 폭은 쪽수에 비례해 안쪽에 더한다.", "kind": "공식", "rel": "ratio", "args": ["margin.bind", "pages"], "from": "제본 실무, 인쇄소 기준"}
+      ]
+    },
+    {
+      "id": "T", "name": "글자",
+      "vars": {
+        "body.size":    {"name": "본문 크기", "unit": "pt", "by": "테마"},
+        "body.leading": {"name": "본문 행간", "unit": "pt", "by": "테마"},
+        "scale.ratio":  {"name": "크기 척도의 비율", "by": "테마"},
+        "sizes":        {"name": "쓰인 글자 크기들", "unit": "pt", "by": "조판"},
+        "sizes.n":      {"name": "쓰인 크기의 가짓수", "unit": "개", "by": "계산"},
+        "families":     {"name": "쓰인 서체 가족 수", "unit": "개", "by": "조판"},
+        "measure":      {"name": "본문 한 줄 글자 수, 공백 포함", "unit": "자", "by": "조판", "at": "문단"},
+        "title.step":   {"name": "제목 크기(본문의 1.15배 이상)끼리 이웃한 크기 비율 중 가장 작은 값", "by": "계산"}
+      },
+      "rules": [
+        {"id": "T1", "rule": "본문 크기는 범위 안에서 고른다.", "kind": "공식", "rel": "range", "args": ["body.size"], "value": {"min": 7.5, "max": 9.2}, "src": "측정", "from": "브링허스트, 아카이브 인쇄"},
+        {"id": "T2", "rule": "본문 행간은 본문 크기에 비례한다.", "kind": "공식", "rel": "ratio", "args": ["body.leading", "body.size"], "value": {"한글": {"min": 1.56, "max": 1.81}, "일본어": {"min": 1.62, "max": 1.88}, "라틴": {"min": 1.28, "max": 1.6}}, "src": "측정", "from": "브링허스트, 한글 보정"},
+        {"id": "T3", "rule": "본문 한 줄 글자 수는 범위 안에 든다.", "kind": "점수", "rel": "range", "args": ["measure"], "value": {"한글": {"min": 34, "max": 55}, "일본어": {"min": 25, "max": 28}, "라틴": {"min": 44, "max": 66}}, "src": "측정", "from": "브링허스트, 한글 보정"},
+        {"id": "T4", "rule": "글자 크기는 한 척도에서만 고른다.", "kind": "체크", "rel": "scale", "args": ["sizes", "scale.ratio"], "from": "브링허스트"},
+        {"id": "T5", "rule": "제목 크기끼리는 단호하게 띄운다. 본문보다 작은 글은 가까운 크기를 여럿 써도 된다.", "kind": "점수", "rel": "range", "args": ["title.step"], "value": {"min": 1.1}, "src": "가설", "scope": "테마별", "from": "비녤리, 아카이브"},
+        {"id": "T6", "rule": "쓰는 크기는 몇 단계뿐이다.", "kind": "체크", "rel": "range", "args": ["sizes.n"], "value": {"max": 11}, "src": "측정", "scope": "테마별", "from": "비녤리"},
+        {"id": "T7", "rule": "서체 가족은 둘을 짝으로 쓰고, 셋째는 감초로만 더한다.", "kind": "체크", "rel": "range", "args": ["families"], "value": {"max": 3}, "src": "측정", "from": "비녤리"}
+      ]
+    },
+    {
+      "id": "G", "name": "격자",
+      "vars": {
+        "baseline":   {"name": "기준선 간격, 본문 행간과 같다", "unit": "pt", "by": "계산"},
+        "leadings":   {"name": "쓰인 행간들", "unit": "pt", "by": "조판"},
+        "row.h":      {"name": "필드 높이", "unit": "pt", "by": "계산"},
+        "row.gap":    {"name": "필드 사이", "unit": "pt", "by": "계산"},
+        "col.n":      {"name": "단 수", "unit": "개", "by": "테마"},
+        "col.gutter": {"name": "단 사이", "unit": "mm", "by": "테마"},
+        "fields":     {"name": "필드선 위치", "unit": "mm", "by": "계산"},
+        "baselines":  {"name": "기준선 위치", "unit": "mm", "by": "계산"},
+        "lines":      {"name": "기준선과 첫 줄 글자 윗선 위치", "unit": "mm", "by": "계산"}
+      },
+      "rules": [
+        {"id": "G1", "rule": "모든 행간은 기준선의 정수배다.", "kind": "공식", "rel": "multiple", "args": ["leadings", "baseline"], "scope": "테마별", "from": "뮐러브로크만"},
+        {"id": "G2", "rule": "필드 높이는 기준선의 정수배다.", "kind": "공식", "rel": "multiple", "args": ["row.h", "baseline"], "from": "뮐러브로크만"},
+        {"id": "G3", "rule": "필드 사이는 기준선 한 줄이다.", "kind": "공식", "rel": "multiple", "args": ["row.gap", "baseline"], "value": {"min": 1, "max": 1}, "src": "가설", "from": "뮐러브로크만"},
+        {"id": "G4", "rule": "단 사이는 기준선에 비례한다.", "kind": "공식", "rel": "ratio", "args": ["col.gutter", "baseline"], "value": {"min": 1.2, "max": 2.9}, "src": "측정", "scope": "테마별", "from": "뮐러브로크만"},
+        {"id": "G5", "rule": "단 수는 범위 안에서 고른다.", "kind": "공식", "rel": "range", "args": ["col.n"], "value": {"min": 1, "max": 4}, "src": "측정", "scope": "테마별", "from": "뮐러브로크만"}
+      ]
+    },
+    {
+      "id": "H", "name": "한글",
+      "vars": {
+        "breaks.midword": {"name": "어절 중간에서 바뀐 줄 수", "unit": "개", "by": "조판"},
+        "kinsoku":        {"name": "줄 머리와 꼬리의 금칙 위반 수", "unit": "개", "by": "조판"},
+        "lastline.chars": {"name": "문단 끝줄 글자 수", "unit": "자", "by": "조판", "at": "문단"},
+        "widows":         {"name": "다음 단으로 홀로 넘어간 문단 끝줄 수", "unit": "개", "by": "조판"},
+        "title.splits":   {"name": "의미 덩어리 안에서 바뀐 제목 줄 수", "unit": "개", "by": "조판"}
+      },
+      "rules": [
+        {"id": "H1", "rule": "줄은 어절 단위로 바꾼다.", "kind": "체크", "rel": "range", "args": ["breaks.midword"], "value": {"max": 0}, "src": "정의", "from": "한글 조판 관습"},
+        {"id": "H2", "rule": "줄 머리와 꼬리에 금칙 문자를 두지 않는다.", "kind": "체크", "rel": "range", "args": ["kinsoku"], "value": {"max": 0}, "src": "정의", "from": "한글 조판 관습"},
+        {"id": "H3", "rule": "문단 끝줄을 한두 글자로 남기지 않는다.", "kind": "체크", "rel": "range", "args": ["lastline.chars"], "value": {"min": 3}, "src": "측정", "from": "한글 조판 관습"},
+        {"id": "H4", "rule": "문단 끝줄 하나만 다음 단으로 넘기지 않는다.", "kind": "체크", "rel": "range", "args": ["widows"], "value": {"max": 0}, "src": "정의", "from": "브링허스트"},
+        {"id": "H5", "rule": "제목은 의미 덩어리 사이에서만 줄을 바꾼다.", "kind": "체크", "rel": "range", "args": ["title.splits"], "value": {"max": 0}, "src": "정의", "from": "한글 조판 관습"}
+      ]
+    },
+    {
+      "id": "C", "name": "색",
+      "vars": {
+        "accents":    {"name": "강조색 수", "unit": "개", "by": "테마"},
+        "tone.text":  {"name": "글자와 바탕의 명도 차", "unit": "L*", "by": "테마"},
+        "tone.shift": {"name": "색을 입힌 뒤 색 역할의 명도가 흑백 계획에서 벗어난 정도", "unit": "L*", "by": "계산"}
+      },
+      "rules": [
+        {"id": "C1", "rule": "강조색은 하나다.", "kind": "체크", "rel": "range", "args": ["accents"], "value": {"max": 1}, "src": "가설", "scope": "테마별", "from": "비녤리"},
+        {"id": "C2", "rule": "색을 입혀도 색 역할의 명도는 흑백 계획 그대로다.", "kind": "체크", "rel": "range", "args": ["tone.shift"], "value": {"max": 10}, "src": "가설", "from": "결정 D-11"},
+        {"id": "C3", "rule": "본문 글자는 바탕과 충분히 대비된다.", "kind": "체크", "rel": "range", "args": ["tone.text"], "value": {"min": 60}, "src": "측정", "from": "가독성"}
+      ]
+    },
+    {
+      "id": "L", "name": "배치",
+      "vars": {
+        "frames":      {"name": "프레임 모서리 위치", "unit": "mm", "by": "조판", "at": "스프레드"},
+        "firstlines":  {"name": "글 첫 줄 위치", "unit": "mm", "by": "조판", "at": "스프레드"},
+        "images":      {"name": "사진 윗선과 아랫선 위치", "unit": "mm", "by": "조판", "at": "스프레드"},
+        "gap.side":    {"name": "양쪽 이웃이 모두 성격(글은 크기나 서체, 그림은 크기)이 다른 요소의 넓은 쪽 간격 ÷ 좁은 쪽 간격. 글·사진·도형을 모두 요소로 보고, 괘선이나 바탕이 경계를 정한 곳은 재지 않는다", "by": "조판", "at": "요소"},
+        "align.lines": {"name": "정렬선 수", "unit": "개", "by": "조판", "at": "스프레드"},
+        "balance":     {"name": "좌우 무게 차, 0이면 같다", "by": "조판", "at": "스프레드"},
+        "heroes":      {"name": "주인공 수. *를 단 영역 중 같은 종류(사진끼리, 글끼리)에 1.5배 넘게 무거운 요소가 없는 것만 센다. 무게는 사진이 면적, 글이 가장 큰 글자 크기. 흐르는 본문만 있는 스프레드는 재지 않는다", "unit": "개", "by": "와이어프레임", "at": "스프레드"},
+        "areas":       {"name": "영역 수", "unit": "개", "by": "와이어프레임", "at": "쪽"},
+        "space.lump":  {"name": "가장 큰 빈 덩어리 ÷ 전체 빈 면적. 1이면 빈 곳이 한 덩어리", "by": "와이어프레임", "at": "스프레드"},
+        "rows.share":  {"name": "옆에 비슷한 높이(20mm 안)로 시작하는 묶음이 있는 큰 요소가 윗선이나 아랫선을 다른 요소와 함께 쓰면 1, 아니면 0. 쪽 위아래 끝도 선이다", "by": "조판", "at": "요소"}
+      },
+      "rules": [
+        {"id": "L1", "rule": "프레임 모서리는 필드선 위에 있다.", "kind": "체크", "rel": "snap", "args": ["frames", "fields"], "from": "뮐러브로크만"},
+        {"id": "L2", "rule": "글 첫 줄은 기준선 위에 있다.", "kind": "체크", "rel": "snap", "args": ["firstlines", "baselines"], "from": "뮐러브로크만"},
+        {"id": "L3", "rule": "사진 윗선은 옆 단 첫 줄의 글자 윗선에, 아랫선은 기준선에 맞춘다.", "kind": "체크", "rel": "snap", "args": ["images", "lines"], "from": "뮐러브로크만"},
+        {"id": "L4", "rule": "요소는 이웃 중 한쪽에 확실히 붙는다. 양쪽 간격이 비슷한 어중간한 자리를 두지 않는다.", "kind": "점수", "rel": "range", "args": ["gap.side"], "value": {"min": 1.5}, "src": "측정", "from": "게슈탈트 근접성, 결정 D-34"},
+        {"id": "L5", "rule": "정렬선은 적을수록 좋다.", "kind": "점수", "rel": "range", "args": ["align.lines"], "value": {"max": 9}, "src": "측정", "from": "뮐러브로크만"},
+        {"id": "L6", "rule": "스프레드마다 주인공은 하나다.", "kind": "점수", "rel": "range", "args": ["heroes"], "value": {"min": 1, "max": 1}, "src": "가설", "from": "비녤리"},
+        {"id": "L7", "rule": "스프레드의 좌우 무게는 균형을 이룬다.", "kind": "점수", "rel": "range", "args": ["balance"], "value": {"max": 0.25}, "src": "측정", "scope": "테마별", "from": "결정 D-15"},
+        {"id": "L8", "rule": "한 쪽의 영역은 몇 개까지다.", "kind": "체크", "rel": "range", "args": ["areas"], "tag": "임시", "from": "화면을 잘게 쪼개는 모델 경향"},
+        {"id": "L9", "rule": "대칭인지 비대칭인지 의도해서 고르고, 어중간하게 섞지 않는다.", "kind": "가이드", "scope": "테마별", "from": "치홀트"},
+        {"id": "L10", "rule": "빈 곳은 흩어지지 않고 덩어리로 모인다.", "kind": "점수", "rel": "range", "args": ["space.lump"], "from": "스위스 양식"},
+        {"id": "L11", "rule": "비슷한 높이에서 시작하는 묶음은 윗선이나 아랫선을 함께 쓴다. 어디에 맞출지는 정하지 않는다.", "kind": "점수", "rel": "range", "args": ["rows.share"], "value": {"min": 1}, "src": "측정", "scope": "테마별", "from": "스위스 양식, 결정 D-35"}
+      ]
+    },
+    {
+      "id": "F", "name": "흐름",
+      "vars": {
+        "wireframes":    {"name": "문서에 쓴 와이어프레임 수", "unit": "개", "by": "와이어프레임"},
+        "wireframe.mix": {"name": "와이어프레임을 둘 이상 쓴 내용 종류 수", "unit": "개", "by": "와이어프레임"},
+        "dark.share":    {"name": "어두운 스프레드의 비율", "by": "와이어프레임"},
+        "tones":         {"name": "스프레드별 라이트·다크 순서", "by": "와이어프레임"},
+        "density":       {"name": "스프레드별 밀도 등급 순서", "by": "조판"},
+        "density.chapters": {"name": "장별 밀도 등급 순서. 장 경계는 페이지 맵에서 온다", "by": "계산"}
+      },
+      "rules": [
+        {"id": "F1", "rule": "같은 종류의 내용은 같은 와이어프레임을 쓴다.", "kind": "체크", "rel": "range", "args": ["wireframe.mix"], "value": {"max": 0}, "src": "정의", "from": "결정 D-14"},
+        {"id": "F2", "rule": "문서의 와이어프레임은 몇 가지뿐이다.", "kind": "점수", "rel": "range", "args": ["wireframes"], "value": {"min": 6, "max": 8}, "src": "가설", "from": "결정 D-14"},
+        {"id": "F3", "rule": "어두운 스프레드는 일정한 비율로 둔다.", "kind": "점수", "rel": "range", "args": ["dark.share"], "value": {"max": 0.3}, "src": "측정", "scope": "테마별", "from": "비녤리"},
+        {"id": "F4", "rule": "같은 톤이 너무 오래 이어지지 않는다.", "kind": "점수", "rel": "run", "args": ["tones"], "scope": "테마별", "from": "비녤리"},
+        {"id": "F5", "rule": "장 안에서는 밀도를 몰아 쓰고, 장이 바뀌면 밀도를 바꾼다.", "kind": "점수", "rel": "run", "args": ["density.chapters"], "value": {"max": 1}, "src": "가설", "from": "비녤리, 아카이브"}
+      ]
+    }
+  ]
+}
